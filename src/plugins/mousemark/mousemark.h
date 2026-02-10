@@ -23,6 +23,13 @@ class MouseMarkEffect
     Q_PROPERTY(int width READ configuredWidth)
     Q_PROPERTY(QColor color READ configuredColor)
     Q_PROPERTY(Qt::KeyboardModifiers modifiers READ freedraw_modifiers)
+
+    enum class State {
+        NONE,
+        FREEHAND,
+        ARROW,
+    };
+
 public:
     MouseMarkEffect();
     ~MouseMarkEffect() override;
@@ -30,6 +37,9 @@ public:
     void paintScreen(const RenderTarget &renderTarget, const RenderViewport &viewport, int mask, const Region &deviceRegion, LogicalOutput *screen) override;
     bool isActive() const override;
     int requestedEffectChainPosition() const override;
+    bool touchDown(qint32 id, const QPointF &pos, std::chrono::microseconds time) override;
+    bool touchMotion(qint32 id, const QPointF &pos, std::chrono::microseconds time) override;
+    bool touchUp(qint32 id, std::chrono::microseconds time) override;
 
     // for properties
     int configuredWidth() const
@@ -56,9 +66,16 @@ private:
     typedef QList<QPointF> Mark;
     void drawMark(QPainter *painter, const Mark &mark);
     static Mark createArrow(QPointF arrow_head, QPointF arrow_tail);
-    QList<Mark> marks;
-    Mark drawing;
-    QPointF arrow_tail;
+
+    void setState(State newState);
+    void processPoint(qint32 channel, const QPointF &point); // ch0 is mouse, ch1+ is touch
+    void endDraw(qint32 channel);
+    void endDrawings();
+
+    QList<Mark> marks; // marks on screen
+    QMap<qint32, Mark> drawings; // marks currently being drawn ([start, end] if arrow)
+    State state;
+
     int width;
     QColor color;
     Qt::KeyboardModifiers m_freedraw_modifiers;
