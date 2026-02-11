@@ -73,7 +73,7 @@ private:
     void endDrawings();
 
     QList<Mark> marks; // marks on screen
-    QMap<qint32, Mark> drawings; // marks currently being drawn ([start, end] if arrow)
+    QMap<qint32, Mark> drawings; // marks currently being drawn
     State state;
 
     int width;

@@ -111,22 +111,12 @@ void MouseMarkEffect::setState(State newState)
         endDrawings();
         break;
     case State::ARROW:
-        // Flush freehands, and start arrow from there
+    case State::FREEHAND:
+        // Flush drawings, and continue new marks from there
         for (Mark &mark : drawings) {
             marks.append(mark);
-            if (mark.size() > 0) {
-                // continue arrow from last point in freehand
+            if (mark.size() >= 2) {
                 mark.first() = mark.last();
-                mark.resize(2);
-            }
-        }
-        break;
-    case State::FREEHAND:
-        // vice versa
-        for (Mark &mark : drawings) {
-            if (mark.size() == 2) {
-                marks.append(createArrow(mark[1], mark[0]));
-                mark[0] = mark[1];
                 mark.resize(1);
             }
         }
@@ -156,11 +146,15 @@ void MouseMarkEffect::processPoint(qint32 id, const QPointF &pos)
         break;
     }
     case State::ARROW: {
-        if (drawing.size() != 2) {
-            drawing.resize(2);
+        if (drawing.size() < 1) {
+            // New arrow
+            drawing.append(pos);
+        } else if (drawing.back() != pos) {
+            // update existing arrow
+            QPointF tail = drawing.front();
+            drawing = createArrow(pos, tail);
+            effects->addRepaintFull();
         }
-        drawing[1] = pos;
-        effects->addRepaintFull();
         break;
     }
     }
@@ -171,14 +165,7 @@ void MouseMarkEffect::endDraw(qint32 channel)
     if (!drawings.contains(channel)) {
         return;
     }
-
-    Mark &drawing = drawings[channel];
-
-    if (state == State::ARROW) {
-        marks.append(createArrow(drawing[1], drawing[0]));
-    } else {
-        marks.append(std::move(drawing));
-    }
+    marks.append(std::move(drawings[channel]));
     drawings.remove(channel);
     effects->addRepaintFull();
 }
@@ -186,11 +173,7 @@ void MouseMarkEffect::endDraw(qint32 channel)
 void MouseMarkEffect::endDrawings()
 {
     for (Mark &drawing : drawings) {
-        if (state == State::ARROW) {
-            marks.append(createArrow(drawing[1], drawing[0]));
-        } else {
-            marks.append(std::move(drawing));
-        }
+        marks.append(std::move(drawing));
     }
     drawings.clear();
     effects->addRepaintFull();
@@ -232,14 +215,8 @@ void MouseMarkEffect::paintScreen(const RenderTarget &renderTarget, const Render
             if (!drawing.isEmpty()) {
                 verts.clear();
                 verts.reserve(drawing.size());
-                if (state == State::ARROW) {
-                    for (const QPointF &p : createArrow(drawing[1], drawing[0])) {
-                        verts.push_back(QVector2D(p.x() * scale, p.y() * scale));
-                    }
-                } else {
-                    for (const QPointF &p : std::as_const(drawing)) {
-                        verts.push_back(QVector2D(p.x() * scale, p.y() * scale));
-                    }
+                for (const QPointF &p : std::as_const(drawing)) {
+                    verts.push_back(QVector2D(p.x() * scale, p.y() * scale));
                 }
                 vbo->setVertices(verts);
                 vbo->render(GL_LINE_STRIP);
@@ -260,11 +237,7 @@ void MouseMarkEffect::paintScreen(const RenderTarget &renderTarget, const Render
             drawMark(painter, mark);
         }
         for (const Mark &drawing : std::as_const(drawings)) {
-            if (state == State::ARROW) {
-                drawMark(painter, createArrow(drawing[1], drawing[0]));
-            } else {
-                drawMark(painter, drawing);
-            }
+            drawMark(painter, drawing);
         }
         painter->restore();
     }
@@ -283,22 +256,31 @@ void MouseMarkEffect::drawMark(QPainter *painter, const Mark &mark)
 bool MouseMarkEffect::touchDown(qint32 id, const QPointF &pos, std::chrono::microseconds time)
 {
     qCDebug(KWIN_MOUSEMARK) << "touchDown id=" << id << " pos=" << pos;
+    if (state == State::NONE) {
+        return false;
+    }
     processPoint(id + 1, pos);
-    return false;
+    return true;
 }
 
 bool MouseMarkEffect::touchMotion(qint32 id, const QPointF &pos, std::chrono::microseconds time)
 {
     qCDebug(KWIN_MOUSEMARK) << "touchMotion id=" << id << " pos=" << pos;
+    if (state == State::NONE) {
+        return false;
+    }
     processPoint(id + 1, pos);
-    return false;
+    return true;
 }
 
 bool MouseMarkEffect::touchUp(qint32 id, std::chrono::microseconds time)
 {
     qCDebug(KWIN_MOUSEMARK) << "touchUp id=" << id;
+    if (state == State::NONE) {
+        return false;
+    }
     endDraw(id + 1);
-    return false;
+    return true;
 }
 
 void MouseMarkEffect::slotMouseChanged(const QPointF &pos, const QPointF &,
@@ -342,7 +324,9 @@ MouseMarkEffect::Mark MouseMarkEffect::createArrow(QPointF arrow_head, QPointF a
 {
     Mark ret;
     double angle = atan2((double)(arrow_tail.y() - arrow_head.y()), (double)(arrow_tail.x() - arrow_head.x()));
-    // Arrow is made of connected lines. We make it's last point at tail, so freedraw can begin from the tail
+    // Arrow is made of connected lines. Make first one tail, so updates preserve the tail.
+    // Last one is head, so freedraw can continue from it
+    ret += arrow_tail;
     ret += arrow_head;
     ret += arrow_head + QPoint(50 * cos(angle + M_PI / 6),
                                 50 * sin(angle + M_PI / 6)); // right one
@@ -350,7 +334,6 @@ MouseMarkEffect::Mark MouseMarkEffect::createArrow(QPointF arrow_head, QPointF a
     ret += arrow_head + QPoint(50 * cos(angle - M_PI / 6),
                                 50 * sin(angle - M_PI / 6)); // left one
     ret += arrow_head;
-    ret += arrow_tail;
     return ret;
 }
 
