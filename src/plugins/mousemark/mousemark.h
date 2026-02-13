@@ -76,6 +76,11 @@ private:
     QMap<qint32, Mark> drawings; // marks currently being drawn
     State state;
 
+    QSet<qint32> touchPoints; // touch points currently being consumed
+                              // we need this so if state switches to NONE mid-touch-draw,
+                              // the *entire* touch sequence is consumed, and none of it is leaked
+                              // until touch release
+
     int width;
     QColor color;
     Qt::KeyboardModifiers m_freedraw_modifiers;
