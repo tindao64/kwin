@@ -287,11 +287,17 @@ bool MouseMarkEffect::touchUp(qint32 id, std::chrono::microseconds time)
     qCDebug(KWIN_MOUSEMARK) << "touchUp id=" << id;
     if (state == State::NONE) {
         if (touchPoints.contains(id)) {
+            touchPoints.remove(id);
             return true;
         }
         return false;
     }
     endDraw(id + 1);
+    if (!touchPoints.contains(id)) {
+        // touch began before drawing activation
+        return false;
+    }
+    touchPoints.remove(id);
     return true;
 }
 
