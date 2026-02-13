@@ -67,6 +67,7 @@ void MouseMarkEffect::reconfigure(ReconfigureFlags)
     m_freedraw_modifiers = Qt::KeyboardModifiers();
     m_arrowdraw_modifiers = Qt::KeyboardModifiers();
     MouseMarkConfig::self()->read();
+    touchDrawEnabled = MouseMarkConfig::touchDrawEnabled();
     width = MouseMarkConfig::lineWidth();
     width_2 = width / 2;
     color = MouseMarkConfig::color();
@@ -256,13 +257,13 @@ void MouseMarkEffect::drawMark(QPainter *painter, const Mark &mark)
 bool MouseMarkEffect::touchDown(qint32 id, const QPointF &pos, std::chrono::microseconds time)
 {
     qCDebug(KWIN_MOUSEMARK) << "touchDown id=" << id << " pos=" << pos;
-    if (state == State::NONE) {
+    if (!touchDrawEnabled || state == State::NONE) {
         return false;
     }
     if (touchPoints.contains(id)) {
         // Will this happen?
         qCWarning(KWIN_MOUSEMARK) << "WARNING: Touch started twice! " << __FILE__ << __LINE__;
-        return false;
+        return true;
     }
     touchPoints.insert(id);
     processPoint(id + 1, pos);
@@ -272,7 +273,7 @@ bool MouseMarkEffect::touchDown(qint32 id, const QPointF &pos, std::chrono::micr
 bool MouseMarkEffect::touchMotion(qint32 id, const QPointF &pos, std::chrono::microseconds time)
 {
     qCDebug(KWIN_MOUSEMARK) << "touchMotion id=" << id << " pos=" << pos;
-    if (state == State::NONE) {
+    if (!touchDrawEnabled || state == State::NONE) {
         if (touchPoints.contains(id)) {
             return true;
         }
@@ -285,7 +286,7 @@ bool MouseMarkEffect::touchMotion(qint32 id, const QPointF &pos, std::chrono::mi
 bool MouseMarkEffect::touchUp(qint32 id, std::chrono::microseconds time)
 {
     qCDebug(KWIN_MOUSEMARK) << "touchUp id=" << id;
-    if (state == State::NONE) {
+    if (!touchDrawEnabled || state == State::NONE) {
         if (touchPoints.contains(id)) {
             touchPoints.remove(id);
             return true;

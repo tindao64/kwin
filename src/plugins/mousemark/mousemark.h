@@ -82,6 +82,7 @@ private:
                               // until touch release
 
     int width;
+    bool touchDrawEnabled;
     QColor color;
     Qt::KeyboardModifiers m_freedraw_modifiers;
     Qt::KeyboardModifiers m_arrowdraw_modifiers;

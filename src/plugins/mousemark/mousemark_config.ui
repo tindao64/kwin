@@ -204,6 +204,13 @@
           </layout>
          </widget>
         </item>
+        <item row="2" column="0">
+         <widget class="QCheckBox" name="kcfg_TouchDrawEnabled">
+           <property name="text">
+            <string>Draw with touchscreen</string>
+           </property>
+         </widget>
+        </item>
        </layout>
       </item>
       <item>
