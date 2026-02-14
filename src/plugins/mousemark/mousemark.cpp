@@ -311,9 +311,9 @@ void MouseMarkEffect::slotMouseChanged(const QPointF &pos, const QPointF &,
     }
     qCDebug(KWIN_MOUSEMARK) << "MouseChanged pos=" << pos;
 
-    if (modifiers == m_freedraw_modifiers) {
+    if (modifiers == m_freedraw_modifiers && modifiers != Qt::NoModifier) {
         setState(State::FREEHAND);
-    } else if (modifiers == m_arrowdraw_modifiers) {
+    } else if (modifiers == m_arrowdraw_modifiers && modifiers != Qt::NoModifier) {
         setState(State::ARROW);
     } else {
         setState(State::NONE);
