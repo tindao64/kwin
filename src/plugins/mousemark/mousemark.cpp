@@ -166,7 +166,7 @@ void MouseMarkEffect::endDraw(qint32 channel)
     if (!drawings.contains(channel)) {
         return;
     }
-    if (drawings[channel].size() > 0) {
+    if (drawings[channel].size() >= 2) {
         marks.append(std::move(drawings[channel]));
         effects->addRepaintFull();
     }
@@ -176,7 +176,7 @@ void MouseMarkEffect::endDraw(qint32 channel)
 void MouseMarkEffect::endDrawings()
 {
     for (Mark &drawing : drawings) {
-        if (drawing.size() > 0) {
+        if (drawing.size() >= 2) {
             marks.append(std::move(drawing));
         }
     }
