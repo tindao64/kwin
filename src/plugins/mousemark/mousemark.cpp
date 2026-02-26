@@ -166,15 +166,19 @@ void MouseMarkEffect::endDraw(qint32 channel)
     if (!drawings.contains(channel)) {
         return;
     }
-    marks.append(std::move(drawings[channel]));
+    if (drawings[channel].size() > 0) {
+        marks.append(std::move(drawings[channel]));
+        effects->addRepaintFull();
+    }
     drawings.remove(channel);
-    effects->addRepaintFull();
 }
 
 void MouseMarkEffect::endDrawings()
 {
     for (Mark &drawing : drawings) {
-        marks.append(std::move(drawing));
+        if (drawing.size() > 0) {
+            marks.append(std::move(drawing));
+        }
     }
     drawings.clear();
     effects->addRepaintFull();
@@ -330,7 +334,7 @@ void MouseMarkEffect::clear()
 
 void MouseMarkEffect::clearLast()
 {
-    if (drawings.size() > 1) { // just pressing a modifiers already create a drawing with 1 point (so not visible), treat it as non-existent
+    if (drawings.size() > 1) { // clear anything currently being drawn first
         drawings.clear();
         effects->addRepaintFull();
     } else if (!marks.isEmpty()) {
