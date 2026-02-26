@@ -115,8 +115,8 @@ void MouseMarkEffect::setState(State newState)
     case State::FREEHAND:
         // Flush drawings, and continue new marks from there
         for (Mark &mark : drawings) {
-            marks.append(mark);
             if (mark.size() >= 2) {
+                marks.append(mark);
                 mark.first() = mark.last();
                 mark.resize(1);
             }
@@ -127,6 +127,9 @@ void MouseMarkEffect::setState(State newState)
 
 void MouseMarkEffect::processPoint(qint32 id, const QPointF &pos)
 {
+    if (state == State::NONE) {
+        return;
+    }
     Mark &drawing = drawings[id];
     switch (state) {
     case State::NONE:
